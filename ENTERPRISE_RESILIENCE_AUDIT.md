@@ -10,9 +10,46 @@
 
 **CRITICAL FINDING:** This system is currently **documentation-only** with zero implementation. While the architectural design demonstrates strong theoretical understanding, **every component is a potential failure point** until built, tested, and verified in production conditions.
 
-**RISK LEVEL:** 🔴 **EXTREME** - Cannot deploy to production without implementation
-**VERIFICATION STATUS:** ❌ **0% Verifiable** - No monitoring exists
+**RISK LEVEL:** 🔴 **EXTREME** - Cannot deploy to production without implementation  
+**VERIFICATION STATUS:** ❌ **0% Verifiable** - No monitoring exists  
 **RESILIENCE SCORE:** **N/A** - System does not exist
+
+### Executive Risk Overview
+- The entire platform lives only in documentation; there is **no running code, automation, or telemetry** to validate any assumptions. Every architectural promise is theoretical until a working implementation, test suite, and monitoring pipeline exist.
+- Control-plane functions, device coordination, and update delivery currently depend on a single VPS and single Git origin; losing either service would strand the entire fleet.
+- Without staged rollout enforcement, health gating, or rollback tooling, any bad commit will still propagate to every Raspberry Pi, creating a “fleet-wide update bomb.”
+
+### Priority Failure Domains & Hardening Recommendations
+
+1. **Control Plane Single Points of Failure**  
+   *Risk:* All authority (Git, Supabase/PostgreSQL, telemetry) sits on one VPS. A Git outage, repo deletion, or VPS failure freezes the fleet.  
+   *Hardening:* Stand up a self-hosted Git mirror with automatic device-side failover, replicate control-plane databases/services, and cache the last N signed releases per device so that the fleet can continue operating in disconnected mode.
+
+2. **Update Pipeline Integrity**  
+   *Risk:* Canary/staged rollout concepts are only written down; the current state still allows immediate propagation of bad artifacts.  
+   *Hardening:* Implement eligibility gating inside the agent, enforce staged promotions from the control plane, add pre-merge validation (lint, compose dry-run, hardware smoke tests), and ship a tested kill switch that pins versions and records transaction logs for rollbacks.
+
+3. **Agent & Safe Mode Robustness**  
+   *Risk:* The fleet agent is a single point of failure on each device; crash loops or partial updates will brick units without defensive engineering.  
+   *Hardening:* Run the agent as a short-lived systemd timer with locking, exponential backoff, crash-loop detection, and automated safe-mode activation. Implement the safe-mode compose stack, health API, and append-only update journal now and rehearse the recovery drill on real hardware.
+
+4. **Configuration Drift & Split-Brain Control**  
+   *Risk:* Network partitions or manual tampering will drive configuration drift across 50+ Pis.  
+   *Hardening:* Deliver the “Reality Check System” as an automated validator that reconciles runtime state against repository manifests, apply auto-remediation with escalation to safe mode, enforce heartbeat SLAs, and expose last-seen/connectivity metrics on the dashboard.
+
+5. **Observability and Incident Response**  
+   *Risk:* No telemetry exists today; operators would be blind to latent issues.  
+   *Hardening:* Prioritise the observability stack (Netdata → Prometheus → Grafana for metrics, Promtail → Loki for logs, Supabase-backed status API) before feature work, instrument agents with health metrics, and route alerts to humans prior to automation.
+
+6. **Supply Chain & Device Lifecycle**  
+   *Risk:* Build-chain security, provisioning, secret rotation, and SD-card health are not yet addressed.  
+   *Hardening:* Layer secrets management (Vault/SOPS) on the repo, automate golden-image creation with secure enrollment, and monitor hardware degradation (SD wear, temperature) via Netdata collectors.
+
+### Execution Roadmap
+1. **Hardening Sprint 0** – Ship redundant control-plane services, repository mirroring, and the observability stack to gain real telemetry before agents go live.  
+2. **Agent Alpha** – Implement the minimally viable agent with locking, retries, staged rollout awareness, safe-mode integration, and validated rollback paths on a lab Pi cluster.  
+3. **Resilience Testing** – Run failure-injection drills (power loss mid-update, Git outage, 24h partition) and close all gaps before promoting beyond canary devices.  
+4. **Operationalization** – Document runbooks, define SLOs, implement alert routing, and formalise change management so the foundation remains reliable for years.
 
 ---
 
