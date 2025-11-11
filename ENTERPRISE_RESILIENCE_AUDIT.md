@@ -519,7 +519,7 @@ VERIFICATION:
 - Need: Automated chaos testing in staging
 
 #### 5. **No Rate Limiting**
-- What if device polls too frequently?
+- What if device poll interval overrides are misconfigured and wake low-power hardware too often despite event-driven triggers?
 - What if monitoring overwhelms database?
 - What if alert storm floods on-call?
 - Need: Rate limits at every level
@@ -651,7 +651,7 @@ Views Required:
 
 Verification:
   - Dashboard loads in <2s
-  - Real-time updates (websocket or 5s poll)
+  - Real-time updates (SSE/WebSocket stream shared with agent wake signals)
   - Mobile responsive
   - No stale data (timestamp check)
 ```
