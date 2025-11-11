@@ -31,13 +31,14 @@ A stable agent is non-negotiable. Every agent includes:
 
 ### 2. Pull, Don't Push
 
-Devices pull updates on their schedule (30-120s intervals). Zero dependence on GitHub Actions, CI/CD pipelines, or merge requirements.
+Devices pull updates on a role-aware schedule (battery devices stretch to minutes or hours) and can receive event-driven wakeups when the control plane marks an update as ready. No dependency on GitHub Actions, CI/CD pipelines, or merge requirements.
 
 **Update flow**:
-1. Read device role from local config
-2. Hit raw Git URL for latest commit hash
-3. Compare with current version
-4. If new → download → extract → atomic swap → restart
+1. Read device role and dynamic `update_interval` from local config
+2. Hold a lightweight SSE/MQTT subscription for "update available" signals while honoring long sleep windows when idle
+3. Hit raw Git URL (or cached artifact service) when signaled or when the interval elapses
+4. Compare with current version
+5. If new → download → extract → atomic swap → restart → report
 
 If GitHub glitches, devices continue happily with current version.
 
@@ -152,7 +153,7 @@ Benefits:
 ### Device Agent
 
 Lightweight service that:
-- Checks for updates every 60s
+- Sleeps according to its role-defined interval and wakes immediately when the control plane signals an available update
 - Downloads and validates new configs
 - Performs atomic swaps
 - Reports status to central dashboard
@@ -180,8 +181,8 @@ Self-contained Docker Compose stacks for each device role:
 ### Update Pipeline
 
 1. Push code to GitHub
-2. Devices poll for changes
-3. Atomic update on each device
+2. Deployment Control promotes the release and emits update signals per rollout segment
+3. Devices wake (signal or interval), verify eligibility, and perform atomic updates
 4. Automatic rollback if issues detected
 5. Dashboard reflects new state
 

@@ -40,7 +40,7 @@ Each API module is independently deployable (e.g., separate containers behind a 
   - `PATCH /devices/{deviceId}` → authorized overrides (role swaps, maintenance mode).
   - `POST /devices/register` → bootstrap new device with signed config bundle.
 - **Data contracts**
-  - Include fields agents expect: `role`, `branch`, `segment`, `update_interval`, `version_lock`, plus device metadata (serial, geolocation, owner).
+  - Include fields agents expect: `role`, `branch`, `segment`, `update_interval`, `event_stream_url`, `version_lock`, plus device metadata (serial, geolocation, owner).
 - **Cross-module integration**
   - Publishes device changes to Deployment Control API for recalculating rollout sets.
   - Emits audit events for enterprise operations.
@@ -60,6 +60,7 @@ Each API module is independently deployable (e.g., separate containers behind a 
   - Auto halt on failure-rate thresholds reported by Telemetry API.
 - **Outputs**
   - Signed deployment manifest (commit hash, compose checksum, feature flags) served via CDN/Git mirror.
+  - Real-time rollout events (`update_available`, `pause`, `rollback`) published to device event streams for immediate wakeups.
 
 ### 3. Fleet Telemetry & Drift API
 
@@ -116,7 +117,7 @@ Each API module is independently deployable (e.g., separate containers behind a 
 
 - **Authentication & Authorization:** Centralized OAuth/OIDC gateway with per-device certificates for agent calls; RBAC for human operators.
 - **Schema Registry:** Versioned protobuf/JSON schemas so agents can gracefully roll between versions; backwards-compatible fields to avoid bricking devices mid-rollout.
-- **Rate Limiting & Backpressure:** Align with exponential backoff and short-lived agent runs to prevent thundering herds when many devices poll simultaneously.
+- **Rate Limiting & Backpressure:** Align with exponential backoff and short-lived agent runs to prevent thundering herds when many devices poll simultaneously; event fanout keeps low-power devices mostly asleep.
 - **Observability:** Every API exposes Prometheus metrics and structured logs to feed the monitoring stack defined in Phase 1.
 - **Testing Hooks:** Synthetic chaos endpoints (e.g., `POST /test/fail-update`) to support the mandatory failure testing regime outlined in the critical roadmap.
 

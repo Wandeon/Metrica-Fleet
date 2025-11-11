@@ -190,7 +190,8 @@ if __name__ == "__main__":
   "hostname": "test-pi",
   "role": "camera-single",
   "branch": "staging",
-  "update_interval": 60,
+  "update_interval": 900,
+  "event_stream_url": "https://control.example.com/devices/pi-test-001/events",
   "segment": "canary"
 }
 ```
@@ -199,10 +200,11 @@ if __name__ == "__main__":
 - [ ] Define config schema
 - [ ] Create config validator
 - [ ] Add default config
-- [ ] Document all fields
+- [ ] Document all fields (including event stream endpoints and interval overrides)
 - [ ] Add config reload without restart
+- [ ] Implement SSE/WebSocket listener that short-circuits the next poll when an update signal arrives
 
-**Deliverable**: Agent runs every minute, detects updates, reports to dashboard. Nothing breaks.
+**Deliverable**: Agent honors long sleep intervals for low-power roles, wakes on event signals, detects updates, reports to dashboard. Nothing breaks.
 
 ---
 

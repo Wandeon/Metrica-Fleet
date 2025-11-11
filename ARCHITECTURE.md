@@ -19,12 +19,13 @@ This document provides in-depth technical details on the Metrica Fleet system de
 
 ## Deployment Strategies
 
-### Basic Pull Model
+### Hybrid Event-Driven Pull Model
 
-Devices poll for updates every 30-120 seconds:
-- Check current commit hash against remote
-- If different, trigger update sequence
-- All devices update independently
+Devices combine long sleep windows with event signals:
+- Each role defines a baseline `update_interval` (battery nodes default to 15-60 minutes, mains-powered gear stays near 30-120 seconds)
+- Deployment Control service emits "update available" events via SSE/MQTT when a rollout segment is promoted
+- Agents wake immediately on signal or when their interval elapses, ensuring NAT-friendly pulls without constant repo chatter
+- All devices still perform self-managed convergence to maintain resilience
 
 **Problem**: 100+ devices updating simultaneously can cause issues.
 
