@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Mode - Metrica Fleet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .warning-icon {
+            font-size: 4rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 1rem 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin: 0.5rem 0;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            opacity: 0.9;
+        }
+
+        .info-value {
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .error-box {
+            background: rgba(220, 38, 38, 0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border: 2px solid rgba(220, 38, 38, 0.6);
+        }
+
+        .error-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-align: left;
+        }
+
+        .instructions {
+            background: rgba(34, 197, 94, 0.2);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            border: 2px solid rgba(34, 197, 94, 0.4);
+        }
+
+        .instructions h3 {
+            margin-bottom: 1rem;
+        }
+
+        .instructions ol {
+            text-align: left;
+            margin-left: 1.5rem;
+        }
+
+        .instructions li {
+            margin: 0.5rem 0;
+            line-height: 1.5;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .timestamp {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="warning-icon">🛡️</div>
+        <h1>SAFE MODE ACTIVE</h1>
+        <p>This device is running in safe mode</p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">Device ID:</span>
+                <span class="info-value" id="device-id">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Hostname:</span>
+                <span class="info-value" id="hostname">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Activated:</span>
+                <span class="info-value" id="activated-time">Unknown</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span class="info-value">Awaiting Instructions</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">SSH Access:</span>
+                <span class="info-value">Port 22 Available</span>
+            </div>
+        </div>
+
+        <div class="error-box" id="error-box">
+            <div class="error-title">Reason for Safe Mode:</div>
+            <div class="error-details" id="error-reason">Loading error details...</div>
+        </div>
+
+        <div class="instructions">
+            <h3>Recovery Instructions</h3>
+            <ol>
+                <li>SSH into the device: <code>ssh pi@<span id="device-ip">device-ip</span></code></li>
+                <li>Check agent logs: <code>journalctl -u metrica-agent -n 50</code></li>
+                <li>Review safe mode state: <code>cat /tmp/metrica-safe-mode.lock</code></li>
+                <li>Fix the issue and restart the agent: <code>systemctl restart metrica-agent</code></li>
+                <li>Or deactivate safe mode manually: <code>cd /opt/metrica-fleet/device-agent/safe_mode && docker compose down</code></li>
+            </ol>
+        </div>
+
+        <div class="timestamp">
+            Page loaded: <span id="current-time"></span>
+        </div>
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            document.getElementById('current-time').textContent = new Date().toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Get device info from hostname
+        const hostname = window.location.hostname;
+        document.getElementById('hostname').textContent = hostname;
+        document.getElementById('device-ip').textContent = hostname;
+
+        // Try to load safe mode state from status.json
+        fetch('/status.json')
+            .then(response => response.json())
+            .then(data => {
+                if (data.device_id) {
+                    document.getElementById('device-id').textContent = data.device_id;
+                }
+                if (data.activated_at) {
+                    document.getElementById('activated-time').textContent = new Date(data.activated_at).toLocaleString();
+                }
+                if (data.reason) {
+                    document.getElementById('error-reason').textContent = data.reason;
+                    if (data.error_details) {
+                        document.getElementById('error-reason').innerHTML =
+                            data.reason + '<br><br>' +
+                            '<pre style="text-align: left; overflow-x: auto;">' +
+                            JSON.stringify(data.error_details, null, 2) +
+                            '</pre>';
+                    }
+                }
+            })
+            .catch(err => {
+                // Fallback if status.json doesn't exist
+                document.getElementById('device-id').textContent = hostname;
+                document.getElementById('error-reason').textContent = 'Application failure detected. Check logs for details.';
+            });
+    </script>
+</body>
+</html>

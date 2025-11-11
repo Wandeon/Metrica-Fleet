@@ -27,6 +27,7 @@ class AgentConfig:
     # Paths
     REPO_PATH: Path = Path(os.getenv("REPO_PATH", "/opt/metrica-fleet"))
     COMPOSE_FILE: Path = Path(os.getenv("COMPOSE_FILE", "docker-compose.yml"))
+    DATA_DIR: Path = Path(os.getenv("DATA_DIR", "/var/lib/metrica-fleet"))
 
     # Safe Mode
     SAFE_MODE_ENABLED: bool = os.getenv("SAFE_MODE_ENABLED", "true").lower() == "true"

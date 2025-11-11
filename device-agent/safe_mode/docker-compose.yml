@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  status-page:
+    image: nginx:alpine
+    container_name: safe-mode-status
+    restart: always
+    ports:
+      - "8888:80"
+    volumes:
+      - ./status-page:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: safe-mode-network
