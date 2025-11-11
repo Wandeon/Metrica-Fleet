@@ -20,7 +20,7 @@ This repository uses a **dual-worktree setup** for safe development:
 │   └── Deployment: Development environment (ports 18080, 13000, 13001)
 │
 └── Metrica-Fleet-prod/     # PRODUCTION WORKTREE
-    ├── Branch: production (stable releases)
+    ├── Branch: master (stable releases)
     ├── Purpose: Tested, approved code for production deployment
     └── Deployment: Production environment (ports 8080, 3000, 3001)
 ```
@@ -35,7 +35,7 @@ git worktree list
 /home/admin/Metrica-Fleet - develop branch
 
 # Production worktree
-/home/admin/Metrica-Fleet-prod - production branch
+/home/admin/Metrica-Fleet-prod - master branch
 ```
 
 ---
@@ -44,20 +44,16 @@ git worktree list
 
 ### Main Branches
 
-1. **master** (protected)
-   - Stable, approved code
-   - Only updated via merged PRs
+1. **master** (protected, production)
+   - Stable, approved code for production
+   - Only updated via merged PRs from develop
    - Source of truth for releases
+   - Lives in: `/home/admin/Metrica-Fleet-prod/` (production worktree)
 
 2. **develop** (active development)
    - Integration branch for ongoing work
    - All feature branches merge here first
-   - Lives in: `/home/admin/Metrica-Fleet/`
-
-3. **production** (deployment)
-   - Tracks releases deployed to production
-   - Updated from master after testing
-   - Lives in: `/home/admin/Metrica-Fleet-prod/`
+   - Lives in: `/home/admin/Metrica-Fleet/` (development worktree)
 
 ### Feature Branches
 
