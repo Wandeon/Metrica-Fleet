@@ -1,0 +1,111 @@
+global:
+  resolve_timeout: 5m
+  # SMTP configuration for email alerts
+  smtp_smarthost: '${SMTP_HOST:-localhost:587}'
+  smtp_from: '${SMTP_FROM:-alertmanager@metrica-fleet.local}'
+  smtp_auth_username: '${SMTP_USERNAME:-}'
+  smtp_auth_password: '${SMTP_PASSWORD:-}'
+  smtp_require_tls: true
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'device_id']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default-receiver'
+
+  # Child routes for specific alert types
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Device-specific alerts
+    - match_re:
+        category: 'availability|hardware'
+      receiver: 'device-alerts'
+      group_by: ['device_id', 'alertname']
+
+    # Deployment alerts
+    - match:
+        category: deployment
+      receiver: 'deployment-alerts'
+
+    # Infrastructure alerts
+    - match:
+        category: infrastructure
+      receiver: 'infrastructure-alerts'
+
+# Inhibition rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # If the entire fleet is offline, don't alert on individual devices
+  - source_match:
+        alertname: 'ManyDevicesOffline'
+    target_match:
+        alertname: 'DeviceOffline'
+    equal: ['cluster']
+
+  # If the API is down, suppress device communication issues
+  - source_match:
+        alertname: 'FleetAPIDown'
+    target_match_re:
+        alertname: '(DeviceOffline|DeploymentStuck)'
+    equal: ['cluster']
+
+  # If PostgreSQL is down, suppress dependent alerts
+  - source_match:
+        alertname: 'PostgreSQLDown'
+    target_match:
+        category: 'api'
+    equal: ['cluster']
+
+# Receivers - notification endpoints
+receivers:
+  - name: 'default-receiver'
+    email_configs:
+      - to: '${ALERT_EMAIL_DEFAULT:-admin@example.com}'
+        headers:
+          Subject: '[Metrica Fleet] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_CRITICAL:-admin@example.com}'
+        headers:
+          Subject: '[CRITICAL] Metrica Fleet - {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure for Slack integration
+    # slack_configs:
+    #   - api_url: '${SLACK_WEBHOOK_URL}'
+    #     channel: '#fleet-critical'
+    #     title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  - name: 'device-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_DEVICES:-admin@example.com}'
+        headers:
+          Subject: '[Device Alert] {{ .GroupLabels.device_id }}'
+        html: '{{ template "email.default.html" . }}'
+
+  - name: 'deployment-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_DEPLOYMENTS:-admin@example.com}'
+        headers:
+          Subject: '[Deployment] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  - name: 'infrastructure-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_INFRA:-admin@example.com}'
+        headers:
+          Subject: '[Infrastructure] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'

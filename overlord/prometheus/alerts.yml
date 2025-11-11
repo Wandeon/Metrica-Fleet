@@ -1,0 +1,221 @@
+groups:
+  - name: fleet_devices
+    interval: 30s
+    rules:
+      # Device offline detection
+      - alert: DeviceOffline
+        expr: (time() - fleet_device_last_seen_timestamp_seconds) > 300
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Device {{ $labels.device_id }} is offline"
+          description: "Device {{ $labels.device_id }} ({{ $labels.hostname }}) has not reported in over 5 minutes. Last seen: {{ $value }}s ago."
+
+      # High CPU usage on device
+      - alert: DeviceHighCPU
+        expr: fleet_device_cpu_usage_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High CPU usage on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} has CPU usage at {{ $value }}% for over 5 minutes."
+
+      # High memory usage
+      - alert: DeviceHighMemory
+        expr: fleet_device_memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High memory usage on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} has memory usage at {{ $value }}% for over 5 minutes."
+
+      # Disk space critical
+      - alert: DeviceDiskSpaceCritical
+        expr: fleet_device_disk_usage_percent > 90
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+        annotations:
+          summary: "Disk space critical on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} has {{ $value }}% disk usage. Immediate action required."
+
+      # Disk space warning
+      - alert: DeviceDiskSpaceWarning
+        expr: fleet_device_disk_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: capacity
+        annotations:
+          summary: "Disk space warning on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} has {{ $value }}% disk usage."
+
+      # High temperature
+      - alert: DeviceHighTemperature
+        expr: fleet_device_temperature_celsius > 80
+        for: 5m
+        labels:
+          severity: critical
+          category: hardware
+        annotations:
+          summary: "High temperature on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} temperature is {{ $value }}°C. Risk of thermal throttling or damage."
+
+      # Device in failed state
+      - alert: DeviceFailedState
+        expr: fleet_device_status{status="failed"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          category: health
+        annotations:
+          summary: "Device {{ $labels.device_id }} in failed state"
+          description: "Device {{ $labels.device_id }} has entered a failed state and requires attention."
+
+      # Device in degraded state
+      - alert: DeviceDegradedState
+        expr: fleet_device_status{status="degraded"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          category: health
+        annotations:
+          summary: "Device {{ $labels.device_id }} is degraded"
+          description: "Device {{ $labels.device_id }} is operating in a degraded state for over 5 minutes."
+
+  - name: fleet_deployments
+    interval: 30s
+    rules:
+      # High deployment failure rate
+      - alert: HighDeploymentFailureRate
+        expr: (rate(fleet_deployment_failures_total[30m]) / rate(fleet_deployment_attempts_total[30m])) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          category: deployment
+        annotations:
+          summary: "High deployment failure rate"
+          description: "Over 20% of deployments are failing in the last 30 minutes. Current rate: {{ $value | humanizePercentage }}."
+
+      # Deployment stuck
+      - alert: DeploymentStuck
+        expr: (time() - fleet_deployment_started_timestamp_seconds) > 1800 and fleet_deployment_status{status="in_progress"} == 1
+        for: 5m
+        labels:
+          severity: error
+          category: deployment
+        annotations:
+          summary: "Deployment {{ $labels.rollout_id }} is stuck"
+          description: "Deployment {{ $labels.rollout_id }} has been in progress for over 30 minutes without completion."
+
+      # Rollout auto-halted
+      - alert: RolloutAutoHalted
+        expr: fleet_deployment_auto_halt_triggered == 1
+        for: 1m
+        labels:
+          severity: critical
+          category: deployment
+        annotations:
+          summary: "Rollout {{ $labels.rollout_id }} auto-halted"
+          description: "Rollout {{ $labels.rollout_id }} was automatically halted due to high failure rate or other safety trigger."
+
+  - name: fleet_system
+    interval: 30s
+    rules:
+      # Fleet API down
+      - alert: FleetAPIDown
+        expr: up{job="fleet-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Fleet API is down"
+          description: "The Fleet Management API is not responding. Devices cannot report status or receive updates."
+
+      # Prometheus targets down
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: monitoring
+        annotations:
+          summary: "Prometheus target {{ $labels.job }} is down"
+          description: "Prometheus cannot scrape metrics from {{ $labels.job }} on {{ $labels.instance }}."
+
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "The Fleet Management database is not responding. Critical system failure."
+
+      # High API error rate
+      - alert: HighAPIErrorRate
+        expr: (rate(http_requests_total{job="fleet-api",status=~"5.."}[5m]) / rate(http_requests_total{job="fleet-api"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: error
+          category: api
+        annotations:
+          summary: "High API error rate"
+          description: "Fleet API is returning 5xx errors at {{ $value | humanizePercentage }} rate."
+
+      # Many devices offline
+      - alert: ManyDevicesOffline
+        expr: (count(fleet_device_status{status="offline"}) / count(fleet_device_status)) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "More than 20% of fleet is offline"
+          description: "{{ $value | humanizePercentage }} of the fleet is currently offline. Possible network or infrastructure issue."
+
+  - name: overlord_health
+    interval: 30s
+    rules:
+      # Overlord VPS high CPU
+      - alert: OverlordHighCPU
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle",instance="vps-01-overlord"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Overlord VPS high CPU usage"
+          description: "VPS-01 Overlord CPU usage is at {{ $value }}% for over 10 minutes."
+
+      # Overlord VPS high memory
+      - alert: OverlordHighMemory
+        expr: (node_memory_MemTotal_bytes{instance="vps-01-overlord"} - node_memory_MemAvailable_bytes{instance="vps-01-overlord"}) / node_memory_MemTotal_bytes{instance="vps-01-overlord"} * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Overlord VPS high memory usage"
+          description: "VPS-01 Overlord memory usage is at {{ $value }}% for over 10 minutes."
+
+      # Overlord disk space
+      - alert: OverlordDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{instance="vps-01-overlord",fstype!~"tmpfs|fuse.*"} / node_filesystem_size_bytes{instance="vps-01-overlord",fstype!~"tmpfs|fuse.*"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Overlord VPS disk space low"
+          description: "VPS-01 Overlord has less than 15% disk space available on {{ $labels.mountpoint }}."
