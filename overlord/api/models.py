@@ -46,7 +46,7 @@ class Device(Base):
     maintenance_mode = Column(Boolean, default=False)
 
     # Metadata
-    metadata = Column(JSONB, default={})
+    device_metadata = Column(JSONB, default={})
     labels = Column(JSONB, default={})
 
     # Timestamps
@@ -109,7 +109,7 @@ class DeviceHeartbeat(Base):
     containers_running = Column(Integer)
     containers_failed = Column(Integer)
 
-    metadata = Column(JSONB, default={})
+    heartbeat_metadata = Column(JSONB, default={})
 
 
 class DeviceEvent(Base):
@@ -160,7 +160,7 @@ class DeploymentConfig(Base):
     require_health_check = Column(Boolean, default=True)
     auto_rollback = Column(Boolean, default=True)
 
-    metadata = Column(JSONB, default={})
+    config_metadata = Column(JSONB, default={})
 
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
@@ -190,6 +190,6 @@ class DeploymentRollout(Base):
     auto_halt_triggered = Column(Boolean, default=False)
     halt_reason = Column(Text)
 
-    metadata = Column(JSONB, default={})
+    rollout_metadata = Column(JSONB, default={})
 
     created_at = Column(DateTime(timezone=True), default=func.now())

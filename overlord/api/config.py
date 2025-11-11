@@ -12,7 +12,16 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://fleet:changeme@postgres:5432/fleet"
+    POSTGRES_USER: str = "fleet"
+    POSTGRES_PASSWORD: str = "changeme"
+    POSTGRES_DB: str = "fleet"
+    POSTGRES_HOST: str = "postgres"
+    POSTGRES_PORT: int = 5432
+
+    @property
+    def DATABASE_URL(self) -> str:
+        """Construct database URL from components"""
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # API
     API_PORT: int = 8080
