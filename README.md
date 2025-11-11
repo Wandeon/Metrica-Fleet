@@ -14,6 +14,31 @@ Traditional fleet management breaks down when devices lose connectivity, updates
 
 Metrica Fleet uses pull-based updates, atomic deployments, and intelligent fallbacks to create a truly resilient fleet where devices self-heal and failures are safe by default.
 
+---
+
+## 🗺️ Documentation Navigation
+
+**👉 START HERE if you're an AI agent or new to the codebase:**
+
+- **[NAVIGATION.md](./NAVIGATION.md)** - Master navigation guide organized by task and component
+- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - One-page cheat sheet for common operations
+
+**Working on specific components:**
+
+- **Backend API**: [overlord/api/README.md](./overlord/api/README.md) - Adding endpoints, database changes, authentication
+- **Monitoring**: [overlord/prometheus/README.md](./overlord/prometheus/README.md) - Metrics, alerts, PromQL queries
+- **Dashboards**: [overlord/grafana/README.md](./overlord/grafana/README.md) - Creating dashboards, panels, visualizations
+- **Device Roles**: [roles/README.md](./roles/README.md) - Creating and managing device roles
+- **Overlord System**: [overlord/README.md](./overlord/README.md) - Deployment, operations, management scripts
+
+**Architecture & Design:**
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Detailed technical design and deployment strategies
+- **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Implementation roadmap and guidance
+- **[SYSTEM_ISOLATION_ASSESSMENT.md](./SYSTEM_ISOLATION_ASSESSMENT.md)** - Security and isolation analysis
+
+---
+
 ## Core Principles
 
 ### 1. Agent Resilience
