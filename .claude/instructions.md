@@ -8,35 +8,26 @@
 
 ## Development Workflow
 
-This repository uses a **dual-worktree setup** for safe development:
+This repository uses a **simple branch-based workflow**:
 
 ### Directory Structure
 
 ```
 /home/admin/
-├── Metrica-Fleet/          # DEVELOPMENT WORKTREE
-│   ├── Branch: develop (active development)
-│   ├── Purpose: Feature implementation, experimentation, testing
-│   └── Deployment: Development environment (ports 18080, 13000, 13001)
-│
-└── Metrica-Fleet-prod/     # PRODUCTION WORKTREE
-    ├── Branch: master (stable releases)
-    ├── Purpose: Tested, approved code for production deployment
-    └── Deployment: Production environment (ports 8080, 3000, 3001)
+└── Metrica-Fleet/          # Single repository
+    ├── Branch: develop (active development)
+    │   └── Purpose: Feature implementation, testing, day-to-day work
+    │
+    └── Branch: master (production)
+        └── Purpose: Stable, tested code ready for deployment
 ```
 
-### Git Worktree Setup
+### How It Works
 
-```bash
-# View worktrees
-git worktree list
-
-# Development worktree (current)
-/home/admin/Metrica-Fleet - develop branch
-
-# Production worktree
-/home/admin/Metrica-Fleet-prod - master branch
-```
+- **One directory**: `/home/admin/Metrica-Fleet`
+- **One set of ports**: 8080 (API), 3000 (Grafana), 3001 (Dashboard)
+- **Switch branches** as needed: `git checkout develop` or `git checkout master`
+- **Stop services** when switching between development and production deployments
 
 ---
 
@@ -45,15 +36,15 @@ git worktree list
 ### Main Branches
 
 1. **master** (protected, production)
-   - Stable, approved code for production
+   - Stable, approved code for production deployment
    - Only updated via merged PRs from develop
    - Source of truth for releases
-   - Lives in: `/home/admin/Metrica-Fleet-prod/` (production worktree)
+   - Deploy from this branch
 
 2. **develop** (active development)
    - Integration branch for ongoing work
    - All feature branches merge here first
-   - Lives in: `/home/admin/Metrica-Fleet/` (development worktree)
+   - Your default working branch
 
 ### Feature Branches
 
@@ -68,14 +59,14 @@ git worktree list
 ### 1. Starting New Work
 
 ```bash
-# Navigate to development worktree
+# Navigate to repository
 cd /home/admin/Metrica-Fleet
 
 # Ensure develop is up to date
 git checkout develop
 git pull origin develop
 
-# Create feature branch
+# Create feature branch (optional, can work directly on develop)
 git checkout -b feat/your-feature-name
 
 # Make changes, commit regularly
@@ -122,18 +113,25 @@ git pull origin develop
 
 ### 5. Deploying to Production
 
-**ONLY after thorough testing in develop:**
+**ONLY after thorough testing on develop:**
 
 ```bash
 # Create PR from develop to master
 gh pr create --base master --head develop --title "release: Deploy tested changes to production"
 
-# After master PR is merged, update production worktree
-cd /home/admin/Metrica-Fleet-prod
-git fetch origin
-git merge origin/master  # or git reset --hard origin/master
+# After master PR is merged, deploy to production
+cd /home/admin/Metrica-Fleet
 
-# Deploy to production environment
+# Stop development services
+cd overlord
+docker compose down
+
+# Switch to master branch
+cd ..
+git checkout master
+git pull origin master
+
+# Deploy production environment
 cd overlord
 docker compose pull
 docker compose up -d
@@ -141,6 +139,10 @@ docker compose up -d
 # Verify deployment
 docker compose ps
 curl http://localhost:8080/health
+
+# Switch back to develop for continued work
+cd ..
+git checkout develop
 ```
 
 ---
@@ -149,51 +151,28 @@ curl http://localhost:8080/health
 
 ### DO ✅
 
-- **Always work in `/home/admin/Metrica-Fleet/` for development**
-- **Create feature branches from `develop`**
-- **Test in development environment first (ports 18080+)**
-- **Create PRs to `develop` for review**
+- **Always work on `develop` branch for development**
+- **Test changes thoroughly on `develop` before merging to `master`**
+- **Create PRs to `develop` for review (optional for solo work)**
 - **Only merge to `master` after thorough testing**
-- **Keep production worktree (`Metrica-Fleet-prod/`) on stable code**
-- **Use different .env files for dev vs prod**
+- **Stop services before switching branches**
 - **Document changes in commit messages**
-- **Run tests before creating PRs**
+- **Run tests before deploying**
+- **Use consistent ports** (8080, 3000, 3001)
 
 ### DON'T ❌
 
-- **Never commit directly to master**
-- **Never make changes in production worktree** (except pulling updates)
-- **Never use production database for testing**
-- **Never skip testing in development environment**
-- **Never deploy untested code to production**
-- **Never commit sensitive credentials (.env files)**
-- **Never work on same branch in multiple worktrees**
+- **Never commit directly to master** (always merge via PR or from develop)
+- **Never deploy untested code to production** (master branch)
+- **Never run dev and prod simultaneously** (same ports, will conflict)
+- **Never skip testing before deployment**
+- **Never commit sensitive credentials** (.env files)
 
 ---
 
 ## Port Allocation
 
-### Development Environment (`/home/admin/Metrica-Fleet/`)
-
-| Service | Port | Internal Port |
-|---------|------|---------------|
-| API | 18080 | 8080 |
-| Grafana | 13000 | 3000 |
-| Dashboard | 13001 | 3001 |
-| Prometheus | 19090 | 9090 |
-| Alertmanager | 19093 | 9093 |
-| Loki | 13100 | 3100 |
-| PostgreSQL | 15432 | 5432 |
-
-Configure in `overlord/.env`:
-```bash
-API_PORT=18080
-GRAFANA_PORT=13000
-DASHBOARD_PORT=13001
-# ... etc
-```
-
-### Production Environment (`/home/admin/Metrica-Fleet-prod/`)
+Standard ports used for all deployments:
 
 | Service | Port | Internal Port |
 |---------|------|---------------|
