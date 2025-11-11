@@ -1,11 +1,11 @@
 global:
   resolve_timeout: 5m
-  # SMTP configuration for email alerts
-  smtp_smarthost: '${SMTP_HOST:-localhost:587}'
-  smtp_from: '${SMTP_FROM:-alertmanager@metrica-fleet.local}'
-  smtp_auth_username: '${SMTP_USERNAME:-}'
-  smtp_auth_password: '${SMTP_PASSWORD:-}'
-  smtp_require_tls: true
+  # SMTP configuration for email alerts (configure via environment variables)
+  # smtp_smarthost: 'localhost:587'
+  # smtp_from: 'alertmanager@metrica-fleet.local'
+  # smtp_auth_username: ''
+  # smtp_auth_password: ''
+  # smtp_require_tls: true
 
 # Templates for notifications
 templates:
@@ -70,42 +70,47 @@ inhibit_rules:
 # Receivers - notification endpoints
 receivers:
   - name: 'default-receiver'
-    email_configs:
-      - to: '${ALERT_EMAIL_DEFAULT:-admin@example.com}'
-        headers:
-          Subject: '[Metrica Fleet] {{ .GroupLabels.alertname }}'
-        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure email when SMTP is set up
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     headers:
+    #       Subject: '[Metrica Fleet] {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.default.html" . }}'
 
   - name: 'critical-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_CRITICAL:-admin@example.com}'
-        headers:
-          Subject: '[CRITICAL] Metrica Fleet - {{ .GroupLabels.alertname }}'
-        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure email when SMTP is set up
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     headers:
+    #       Subject: '[CRITICAL] Metrica Fleet - {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.default.html" . }}'
     # Uncomment and configure for Slack integration
     # slack_configs:
-    #   - api_url: '${SLACK_WEBHOOK_URL}'
+    #   - api_url: 'SLACK_WEBHOOK_URL'
     #     channel: '#fleet-critical'
     #     title: '[CRITICAL] {{ .GroupLabels.alertname }}'
     #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
 
   - name: 'device-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_DEVICES:-admin@example.com}'
-        headers:
-          Subject: '[Device Alert] {{ .GroupLabels.device_id }}'
-        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure email when SMTP is set up
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     headers:
+    #       Subject: '[Device Alert] {{ .GroupLabels.device_id }}'
+    #     html: '{{ template "email.default.html" . }}'
 
   - name: 'deployment-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_DEPLOYMENTS:-admin@example.com}'
-        headers:
-          Subject: '[Deployment] {{ .GroupLabels.alertname }}'
-        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure email when SMTP is set up
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     headers:
+    #       Subject: '[Deployment] {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.default.html" . }}'
 
   - name: 'infrastructure-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_INFRA:-admin@example.com}'
-        headers:
-          Subject: '[Infrastructure] {{ .GroupLabels.alertname }}'
-        html: '{{ template "email.default.html" . }}'
+    # Uncomment and configure email when SMTP is set up
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     headers:
+    #       Subject: '[Infrastructure] {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.default.html" . }}'

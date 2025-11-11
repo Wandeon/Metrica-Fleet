@@ -132,7 +132,11 @@ services:
     container_name: fleet-api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fleet}
+      POSTGRES_USER: ${POSTGRES_USER:-fleet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-fleet}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
       API_PORT: ${API_PORT:-8080}
       API_SECRET_KEY: ${API_SECRET_KEY}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
@@ -171,7 +175,7 @@ services:
     networks:
       - fleet-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -194,7 +198,7 @@ services:
     networks:
       - fleet-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3
