@@ -20,8 +20,11 @@ from schemas import (
     DeviceHeartbeatCreate,
     DeviceResponse,
     DeviceListResponse,
+    DeviceConfigResponse,
     DeploymentCreate,
     DeploymentResponse,
+    DeploymentReportRequest,
+    DeploymentReportResponse,
     HealthResponse
 )
 from auth import verify_api_key
@@ -335,6 +338,141 @@ async def get_device_events(
     events = result.scalars().all()
 
     return {"events": events}
+
+# Get device configuration
+@app.get("/api/v1/devices/{device_id}/config", response_model=DeviceConfigResponse)
+async def get_device_config(
+    device_id: str,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Get device configuration"""
+    logger.debug("Device config requested", device_id=device_id)
+
+    result = await db.execute(select(Device).where(Device.device_id == device_id))
+    device = result.scalar_one_or_none()
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    return DeviceConfigResponse(
+        device_id=device.device_id,
+        role=device.role,
+        branch=device.branch,
+        segment=device.segment,
+        update_enabled=device.update_enabled,
+        version_lock=device.version_lock,
+        maintenance_mode=device.maintenance_mode,
+        config=device.device_metadata or {}
+    )
+
+# Device deployment report
+@app.post("/api/v1/devices/{device_id}/deployment", response_model=DeploymentReportResponse)
+async def report_deployment(
+    device_id: str,
+    deployment: DeploymentReportRequest,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Receive deployment status report from device"""
+    logger.info("Deployment report", device_id=device_id, status=deployment.status, commit=deployment.commit_hash)
+
+    # Get device
+    result = await db.execute(select(Device).where(Device.device_id == device_id))
+    device = result.scalar_one_or_none()
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # Update device commit hash if successful
+    if deployment.status == "success":
+        device.previous_commit_hash = device.current_commit_hash
+        device.current_commit_hash = deployment.commit_hash
+        device.status = "healthy"
+    elif deployment.status == "failed":
+        device.status = "degraded"
+
+    # Create deployment update record
+    update_record = DeviceUpdate(
+        device_id=device_id,
+        from_commit_hash=device.previous_commit_hash,
+        to_commit_hash=deployment.commit_hash,
+        update_status=deployment.status,
+        completed_at=datetime.utcnow() if deployment.status in ["success", "failed"] else None,
+        error_message=deployment.error,
+        health_check_passed=(deployment.status == "success"),
+        health_check_details=deployment.deploy_metadata
+    )
+    db.add(update_record)
+
+    # Log deployment event
+    event = DeviceEvent(
+        device_id=device_id,
+        event_type="deployment",
+        severity="info" if deployment.status == "success" else "error",
+        message=f"Deployment {deployment.status}: {deployment.commit_hash[:8]}",
+        details=deployment.deploy_metadata,
+        commit_hash=deployment.commit_hash,
+        component="deployment"
+    )
+    db.add(event)
+
+    await db.commit()
+    await db.refresh(update_record)
+
+    deployment_counter.labels(status=deployment.status).inc()
+
+    return DeploymentReportResponse(
+        deployment_id=str(update_record.id),
+        status="acknowledged",
+        message=f"Deployment report received for {device_id}"
+    )
+
+# ==========================================
+# Device Agent API Endpoints (Simplified Paths)
+# ==========================================
+
+# These endpoints provide simpler paths for device agents
+# without the /v1/ version prefix
+
+@app.post("/api/devices", response_model=DeviceResponse, status_code=status.HTTP_201_CREATED)
+async def register_device_simple(
+    device_data: DeviceRegister,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Register a new device (simplified path for agents)"""
+    return await register_device(device_data, db, api_key)
+
+@app.post("/api/devices/{device_id}/heartbeat", status_code=status.HTTP_200_OK)
+async def device_heartbeat_simple(
+    device_id: str,
+    heartbeat: DeviceHeartbeatCreate,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Receive device heartbeat (simplified path for agents)"""
+    await device_heartbeat(device_id, heartbeat, db, api_key)
+    return {"acknowledged": True, "next_heartbeat_seconds": 30}
+
+@app.get("/api/devices/{device_id}/config", response_model=DeviceConfigResponse)
+async def get_device_config_simple(
+    device_id: str,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Get device configuration (simplified path for agents)"""
+    return await get_device_config(device_id, db, api_key)
+
+@app.post("/api/devices/{device_id}/deployment", response_model=DeploymentReportResponse)
+async def report_deployment_simple(
+    device_id: str,
+    deployment: DeploymentReportRequest,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Receive deployment status (simplified path for agents)"""
+    return await report_deployment(device_id, deployment, db, api_key)
 
 # Root endpoint
 @app.get("/")

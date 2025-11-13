@@ -102,6 +102,36 @@ class DeploymentResponse(BaseModel):
         from_attributes = True
 
 
+class DeviceConfigResponse(BaseModel):
+    """Device configuration response schema"""
+    device_id: str
+    role: str
+    branch: str
+    segment: str
+    update_enabled: bool
+    version_lock: Optional[str] = None
+    maintenance_mode: bool
+    config: Dict[str, Any] = Field(default_factory=dict)
+
+    class Config:
+        from_attributes = True
+
+
+class DeploymentReportRequest(BaseModel):
+    """Deployment report from device"""
+    commit_hash: str
+    status: str = Field(..., description="success, failed, in_progress")
+    error: Optional[str] = None
+    deploy_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+
+class DeploymentReportResponse(BaseModel):
+    """Deployment report acknowledgment"""
+    deployment_id: str
+    status: str
+    message: str
+
+
 class HealthResponse(BaseModel):
     """Health check response schema"""
     status: str
