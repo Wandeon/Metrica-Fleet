@@ -1,0 +1,36 @@
+[Unit]
+Description=Metrica Fleet Device Agent
+Documentation=https://github.com/Wandeon/Metrica-Fleet
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/metrica-agent
+ExecStart=/usr/bin/python3 /opt/metrica-agent/agent.py
+EnvironmentFile=/etc/metrica-agent/agent.env
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=200
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=metrica-agent
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
